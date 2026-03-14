@@ -1,64 +1,47 @@
 const http = require('http');
 const fs = require('fs');
+const path = require('path');
 
-let port = 3000;
-let host = 'localhost';
+const hostname = '127.0.0.1';
+const port = 3000;
 
-//decorar essas declarações
+const server = http.createServer((req, res) => {
+    console.log(req.url);
 
-const server = http.createServer((req,res)=>{
-    //header = cabeçalho
-    res.setHeader('Content-type','text/html');
+    let filePath = '.' + req.url;
+    if (filePath === './') filePath = './html/home.html';
 
+    const extname = String(path.extname(filePath)).toLowerCase();
+    const mimeTypes = {
+        '.html': 'text/html',
+        '.js': 'text/javascript',
+        '.css': 'text/css',
+        '.json': 'application/json',
+        '.png': 'image/png',
+        '.jpg': 'image/jpg',
+        '.gif': 'image/gif',
+    };
 
-    //roteamento
-    let html_page = '';
+    const contentType = mimeTypes[extname] || 'application/octet-stream';
 
-    switch(req.url){
-        case '/':
-            html_page = 'home.html'
-            res.statusCode = 200
-            break;
-
-            case '/home':
-            html_page = 'home.html'
-            res.statusCode = 200
-            break;
-
-            case '/sobre':
-                html_page = 'about.html'
-                res.statusCode = 200
-                break;
-
-                case '/servicos':
-                html_page = 'services.html'
-                res.statusCode = 200
-                break;
-
-                default:
-                    html_page = '404.html'
-                    res.statusCode = 404
-                    break;
-                
-
-    }
-    //preparar a página de html
-    fs.readFile('./HTML/'+html_page,(err,data)=>{
-        if(err){
-            console.log('erro');
-            res.statusCode = 404;
-            res.end()
+    fs.readFile(filePath, (error, content) => {
+        if (error) {
+            if (error.code === 'ENOENT') {
+                fs.readFile('./html/404.html', (err404, content404) => {
+                    res.writeHead(404, { 'Content-Type': 'text/html' });
+                    res.end(content404, 'utf-8');
+                });
+            } else {
+                res.writeHead(500);
+                res.end('Erro do servidor: ' + error.code);
+            }
+        } else {
+            res.writeHead(200, { 'Content-Type': contentType });
+            res.end(content, 'utf-8');
         }
-        else{
-            res.write(data);
-            res.end();
+    });
+});
 
-         }
-    })
-})
-    server.listen(port,host,()=>{
-    console.log('Servidor está no ar!!!');
-})
-
-
-//escrever servidor com roteamento com 4 pg q vai ter q escrever, e tem q ter estetica, github em pasta especifica
+server.listen(port, hostname, () => {
+    console.log(`Servidor rodando em http://${hostname}:${port}/`);
+});
